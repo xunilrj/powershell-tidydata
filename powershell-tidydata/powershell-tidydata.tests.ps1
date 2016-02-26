@@ -16,6 +16,7 @@ Hindu;1;9;7;9;11;34
 Historically Black Prot;228;244;236;238;197;223
 Jehovah''s Witness;20;27;24;24;21;30
 Jewish;19;19;25;25;30;95'
+
 $billboard = 'year,artist,track,time,date.entered,wk1,wk2,wk3
 2000, 2 Pac, Baby Don''t Cry, 4:22, 2000-02-26, 87, 82, 72
 2000, 2Ge+her, The Hardest Part Of ..., 3:15, 2000-09-02, 91, 87, 92
@@ -26,10 +27,22 @@ $billboard = 'year,artist,track,time,date.entered,wk1,wk2,wk3
 2000, Aaliyah, Try Again, 4:03, 2000-03-18, 59, 53, 38
 2000, Adams Yolanda, Open My Heart, 5:30, 2000-08-26, 76, 76, 74'
 
+$a = "country year m014 m1524 m2534 m3544 m4554 m5564 m65 mu f014
+AD 2000 0 0 1 0 0 0 0 — —
+AE 2000 2 4 4 6 5 12 10 — 3
+AF 2000 52 228 183 149 129 94 80 — 93
+AG 2000 0 0 0 0 0 0 1 — 1
+AL 2000 2 19 21 14 24 19 16 — 3
+AM 2000 2 152 130 131 63 26 21 — 1
+AN 2000 0 0 1 2 0 0 0 — 0
+AO 2000 186 999 1003 912 482 312 194 — 247
+AR 2000 97 278 594 402 419 368 330 — 121
+AS 2000 — — — — 1 1 — — —"
+
 #endregion
 
 Describe "Unpivot-Object" {
-	Context "When Variables are in columns" {
+	Context "When column headers are values, not variable names" {
 		It "Turns them in key-value" {
 			Mock Get-Content {$religionIncome}
 
@@ -51,7 +64,6 @@ Describe "Unpivot-Object" {
             $molten[4].Quantity | Should Be 76            
             $molten[5].Quantity | Should Be 137
 		}
-
         It "Allow a transformation to the Key Name" {            
             Mock Get-Content {$billboard}
 
@@ -75,4 +87,9 @@ Describe "Unpivot-Object" {
             $data[4].Rank | Should Be '87'
         }
 	}
+    Context "When Multiple variables stored in one column" {        It "a"{            $a | ConvertFrom-Csv -Delimiter ' ' |                 Unpivot-Object m014, m1524, m2534, m3544, m4554, m5564, m65, mu, f014 -As 'Columns','Cases' |                Transform-Member "Columns" {                    if($_.ToString().StartsWith("m")){
+                        @{"Sex"="male";Age = $_.ToString().Remove(0, 1)}
+                    }elseif($_.ToString().StartsWith("f")){
+                        @{"Sex"="female";Age = $_.ToString().Remove(0, 1)}
+                    }                } |                                #-TransformKey {                #    if($_.ToString().StartsWith("m")){                #        @{"Sex"="male";Age = $_.ToString().Remove(0, 1)}                #    }elseif($_.ToString().StartsWith("f")){                #        @{"Sex"="female";Age = $_.ToString().Remove(0, 1)}                #    }                #} -TransformValue {                #    if($_ -eq "—")                #    {$null}                #    else                #    {[int]$_}                #} |                ft                    }    }
 }
