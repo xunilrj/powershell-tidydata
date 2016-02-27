@@ -27,7 +27,7 @@ $billboard = 'year,artist,track,time,date.entered,wk1,wk2,wk3
 2000, Aaliyah, Try Again, 4:03, 2000-03-18, 59, 53, 38
 2000, Adams Yolanda, Open My Heart, 5:30, 2000-08-26, 76, 76, 74'
 
-$a = "country year m014 m1524 m2534 m3544 m4554 m5564 m65 mu f014
+$cases = "country year m014 m1524 m2534 m3544 m4554 m5564 m65 mu f014
 AD 2000 0 0 1 0 0 0 0 — —
 AE 2000 2 4 4 6 5 12 10 — 3
 AF 2000 52 228 183 149 129 94 80 — 93
@@ -43,7 +43,7 @@ AS 2000 — — — — 1 1 — — —"
 
 Describe "Unpivot-Object" {
 	Context "When column headers are values, not variable names" {
-		It "Turns them in key-value" {
+		It "must be possible to unpivot the column in key-value" {
 			Mock Get-Content {$religionIncome}
 
 			$molten = gc .\religionIncome.csv | 
@@ -64,7 +64,7 @@ Describe "Unpivot-Object" {
             $molten[4].Quantity | Should Be 76            
             $molten[5].Quantity | Should Be 137
 		}
-        It "Allow a transformation to the Key Name" {            
+        It "must be possible to apply a transformation to the column name" {            
             Mock Get-Content {$billboard}
 
             $data = gc .\billboard.csv | ConvertFrom-Csv |
@@ -87,9 +87,11 @@ Describe "Unpivot-Object" {
             $data[4].Rank | Should Be '87'
         }
 	}
-    Context "When Multiple variables stored in one column" {        It "a"{            $a | ConvertFrom-Csv -Delimiter ' ' |                 Unpivot-Object m014, m1524, m2534, m3544, m4554, m5564, m65, mu, f014 -As 'Columns','Cases' |                Transform-Member "Columns" {                    if($_.ToString().StartsWith("m")){
-                        @{"Sex"="male";Age = $_.ToString().Remove(0, 1)}
-                    }elseif($_.ToString().StartsWith("f")){
-                        @{"Sex"="female";Age = $_.ToString().Remove(0, 1)}
-                    }                } |                                #-TransformKey {                #    if($_.ToString().StartsWith("m")){                #        @{"Sex"="male";Age = $_.ToString().Remove(0, 1)}                #    }elseif($_.ToString().StartsWith("f")){                #        @{"Sex"="female";Age = $_.ToString().Remove(0, 1)}                #    }                #} -TransformValue {                #    if($_ -eq "—")                #    {$null}                #    else                #    {[int]$_}                #} |                ft                    }    }
+    Context "When Multiple variables stored in one column" {        It "must be possible to split the column in two or more coluns"{            Mock Get-Content {$cases}            $data = gc .\Cases.csv |                    ConvertFrom-Csv -Delimiter ' ' |                     Unpivot-Object m014, m1524, m2534, m3544, m4554, m5564, m65, mu, f014 -As 'Columns','Cases' |                    Split-Member "Columns" "^(?<SEX>.)(?<AGE>.+)$" |                    Rename-Member "SEX" "Sex" |                    Rename-Member "AGE" "Age" |                                     Transform-Member "Cases" @{"—"=$null} |                    Cast-Member "Cases" System.Int32 |                    Transform-Member "Sex" @{"m"="MALE";"f"="FEMALE"} |                    Transform-Member "Age" @{                        "014"="00-14";                        "1524"="15-24";                        "2534"="25-34";                        "3544"="35-44";                        "4554"="45-54";                        "5564"="55-64";                        "65"="65+";                        "u"="Uninformed";}            $data[0].Sex | Should Be 'MALE'
+            $data[0].Age | Should Be '00-14'
+            $data[0].Cases | Should Be 0            $data[1].Sex | Should Be 'MALE'
+            $data[1].Age | Should Be '15-24'
+            $data[1].Cases | Should Be 0            $data[2].Sex | Should Be 'MALE'
+            $data[2].Age | Should Be '25-34'
+            $data[2].Cases | Should Be 1        }    }
 }

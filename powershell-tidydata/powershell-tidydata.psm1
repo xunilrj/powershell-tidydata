@@ -55,9 +55,9 @@ filter Transform-Member{
     [Parameter(Position = 0)]
     $Name, 
     [Parameter(Position = 1)]
-    [ScriptBlock]$Transformation,
+    $Transformation,        
     [Parameter(ValueFromPipeline = $true)]
-    $Input)
+    $Input)    
     process{
         $new_ = $_ | ConvertTo-Json -Depth 10 | ConvertFrom-Json
         $prop = $new_.PsObject.Properties[$Name]
@@ -67,9 +67,20 @@ filter Transform-Member{
         $propKey = $prop.Name
         $propValue = $prop.Value
 
-        $context = New-Object System.Collections.Generic.List[PSVariable]
-        $context.Add((New-Object "PSVariable" @("_", $propValue)))
-        $transformed = $Transformation.InvokeWithContext(@{}, $context)[0]
+        $transformed = $null
+
+        if($Transformation -is [ScriptBlock]){
+            $context = New-Object System.Collections.Generic.List[PSVariable]
+            $context.Add((New-Object "PSVariable" @("_", $propValue)))
+            $transformed = $Transformation.InvokeWithContext(@{}, $context)[0]
+        }elseif ($Transformation -is [HashTable]){
+            if($Transformation.ContainsKey($propValue)){
+                $transformed = $Transformation[$propValue]
+            }
+            else{
+                $transformed = $propValue
+            }
+        }
         
         if($transformed -is [System.Collections.Hashtable]){
             foreach($key in $transformed.Keys){
@@ -85,4 +96,71 @@ filter Transform-Member{
     }
 }
 
+filter Split-Member{
+    [CmdletBinding()]
+    param(
+    [Parameter(Position = 0)]
+    $Name, 
+    [Parameter(Position = 1)]
+    $Regex,
+    [Parameter(ValueFromPipeline = $true)]
+    $Input)
+    begin{
+        $r = [regex]::new($Regex)
+    }
+    process{
+       $_ | Transform-Member $Name {
+            $result = $r.Matches($_)
+            $hash = @{}
+            foreach($item in $r.GetGroupNames()){
+                if($item -eq "0") {continue}
+
+                $hash.Add($item, $result.Groups[ $r.GroupNumberFromName($item) ].Value)
+            }
+
+            $hash
+       } 
+    }
+}
+
+filter Rename-Member{
+    [CmdletBinding()]
+    param(
+    [Parameter(Position = 0)]
+    $Name, 
+    [Parameter(Position = 1)]
+    $As,
+    [Parameter(ValueFromPipeline = $true)]
+    $Input)    
+    process{
+        $prop = $_.PsObject.Properties[$Name]
+        $_.PsObject.Members.Remove($Name) | Out-Null 
+
+        $_ | Add-Member -Name $As -Value $prop.Value -MemberType NoteProperty -PassThru
+    }
+}
+
+filter Cast-Member{    
+    [CmdletBinding()]
+    param(
+    [Parameter(Position = 0)]
+    $Name, 
+    [Parameter(Position = 1)]
+    $Type,
+    [Parameter(ValueFromPipeline = $true)]
+    $Input)
+    begin{
+        $Type = $Type -as [Type]
+    }
+    process{
+        $_ | Transform-Member $Name {
+                if($_ -ne $null ) {[System.Convert]::ChangeType($_, $Type)}
+                else {$_}
+             }
+    }
+}
+
 Set-Alias melt Unpivot-Object
+Set-Alias lookup Transform-Member
+Set-Alias rename Rename-Member
+Set-Alias cast Cast-Member
