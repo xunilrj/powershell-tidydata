@@ -3,8 +3,17 @@ Application of the Tidy Data concept of Hadley Wickham using Powershell lingo.
 
 https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html  
 http://vita.had.co.nz/papers/tidy-data.pdf
-
-Unpivot-Object (melt in Hadley´s words) allow to transform
+  
+# Commands  
+Unpivot-Object  
+Transform-Member  
+Split-Member  
+Rename-Member  
+Cast-Member  
+  
+#Unpivot-Object  
+(melt in Hadley´s words)  
+Allows to transform  
 
 | row | a | b | c |
 |-----|---|---|---|
