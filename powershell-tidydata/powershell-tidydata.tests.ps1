@@ -39,6 +39,17 @@ AO 2000 186 999 1003 912 482 312 194 — 247
 AR 2000 97 278 594 402 419 368 330 — 121
 AS 2000 — — — — 1 1 — — —"
 
+$weather = "id year month element d1 d2 d3 d4 d5 d6 d7 d8
+MX17004 2010 1 tmax — — — — — — — —
+MX17004 2010 1 tmin — — — — — — — —
+MX17004 2010 2 tmax — 27.3 24.1 — — — — —
+MX17004 2010 2 tmin — 14.4 14.4 — — — — —
+MX17004 2010 3 tmax — — — — 32.1 — — —
+MX17004 2010 3 tmin — — — — 14.2 — — —
+MX17004 2010 4 tmax — — — — — — — —
+MX17004 2010 4 tmin — — — — — — — —
+MX17004 2010 5 tmax — — — — — — — —
+MX17004 2010 5 tmin — — — — — — — —"
 #endregion
 
 Describe "Unpivot-Object" {
@@ -93,5 +104,11 @@ Describe "Unpivot-Object" {
             $data[1].Age | Should Be '15-24'
             $data[1].Cases | Should Be 0            $data[2].Sex | Should Be 'MALE'
             $data[2].Age | Should Be '25-34'
-            $data[2].Cases | Should Be 1        }    }
+            $data[2].Cases | Should Be 1        }    }    Context "When Multiple types are stored in one table"{        It "must be possible to turn variables in rows into columns" {            Mock Get-Content {$weather}            $data = gc .\Weather.csv  |                    ConvertFrom-Csv -Delimiter ' ' |                    Unpivot-Object d1,d2,d3,d4,d5,d6,d7,d8 -As day,value |                    Split-Member "day" "^.(?<day>.+)$" |                    Cast-Member "year" System.Int32 |                    Cast-Member "month" System.Int32 |                    Cast-Member "day" System.Int32 |                    Join-Member year, month, day date {[DateTime]::new($_.year, $_.month, $_.day)} |                                        Cast-Member "value" System.Double |                    Pivot-Object element value            $data[0].date.ToString("yyyy/MM/dd") | Should Be '2010/01/01'
+            $data[0].tmax | Should BeNullOrEmpty 
+            $data[0].tmin | Should BeNullOrEmpty             $data[9].date.ToString("yyyy/MM/dd") | Should Be '2010/02/02'
+            $data[9].tmax | Should Be 27.3
+            $data[9].tmin | Should Be 14.4            $data[10].date.ToString("yyyy/MM/dd") | Should Be '2010/02/03'
+            $data[10].tmax | Should Be 24.1
+            $data[10].tmin | Should Be 14.4        }    }
 }
