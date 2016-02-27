@@ -5,7 +5,7 @@ https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html
 http://vita.had.co.nz/papers/tidy-data.pdf
   
 # Commands  
-Pivot-Object
+Pivot-Object  
 Unpivot-Object  
 Transform-Member  
 Split-Member  
